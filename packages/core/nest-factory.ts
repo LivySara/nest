@@ -85,12 +85,14 @@ export class NestFactoryStatic {
       : [this.createHttpAdapter(), serverOrOptions];
 
     const applicationConfig = new ApplicationConfig();
+    // 1. 实例化 IoC 容器，这个容器就是用来存放所有对象的地方
     const container = new NestContainer(applicationConfig, appOptions);
     const graphInspector = this.createGraphInspector(appOptions!, container);
 
     this.setAbortOnError(serverOrOptions, options);
     this.registerLoggerConfiguration(appOptions);
 
+    // 2. 执行初始化逻辑，是依赖注入的核心逻辑所在
     await this.initialize(
       moduleCls,
       container,
@@ -100,6 +102,7 @@ export class NestFactoryStatic {
       httpServer,
     );
 
+    // 3. 实例化 NestApplication 类
     const instance = new NestApplication(
       container,
       httpServer,
@@ -108,6 +111,7 @@ export class NestFactoryStatic {
       appOptions,
     );
     const target = this.createNestInstance(instance);
+    // 4. 生成一个 Proxy 代理对象，将对 NestApplication 实例上部分属性的访问代理到 httpServer，在 nest 中httpServer 默认就是 express 实例对象，所以默认情况下，express 的中间件都是可以使用的
     return this.createAdapterProxy<T>(target, httpServer);
   }
 
@@ -196,7 +200,7 @@ export class NestFactoryStatic {
   private createNestInstance<T>(instance: T): T {
     return this.createProxy(instance);
   }
-
+  // 依赖注入过程
   private async initialize(
     module: any,
     container: NestContainer,
